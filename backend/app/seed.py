@@ -1,7 +1,17 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from app.extensions import db
-from app.models import Community, Elevator, FaultReport, InspectionRecord, MaintenancePlan, RepairTracking
+from app.models import (
+    Community,
+    Elevator,
+    FaultReport,
+    InspectionRecord,
+    INSPECTION_RESULT_NORMAL,
+    INSPECTION_RESULT_SLIGHT,
+    INSPECTION_RESULT_SEVERE,
+    MaintenancePlan,
+    RepairTracking,
+)
 
 
 def seed_data():
@@ -45,10 +55,26 @@ def seed_data():
             ),
             InspectionRecord(
                 inspector="Inspector Wang",
-                result="Normal",
+                result=INSPECTION_RESULT_NORMAL,
                 checklist="Machine room temperature, cabin lighting, and door lock circuit are normal.",
                 attachment_url="https://example.com/inspection/bj-a1-01.jpg",
                 elevator=elevators[0],
+            ),
+            InspectionRecord(
+                inspector="Inspector Liu",
+                result=INSPECTION_RESULT_SLIGHT,
+                checklist="Door opening speed slightly slow, lubrication needed. No safety hazard.",
+                attachment_url="",
+                elevator=elevators[2],
+                inspected_at=datetime.utcnow() - timedelta(days=1),
+            ),
+            InspectionRecord(
+                inspector="Inspector Wang",
+                result=INSPECTION_RESULT_SEVERE,
+                checklist="Traction machine abnormal noise, brake wear exceeds limit. Immediate repair required.",
+                attachment_url="https://example.com/inspection/bj-b2-02.jpg",
+                elevator=elevators[1],
+                inspected_at=datetime.utcnow() - timedelta(days=3),
             ),
         ]
     )

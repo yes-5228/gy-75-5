@@ -1,5 +1,18 @@
+from sqlalchemy import func
+
 from app.extensions import db
-from app.models import InspectionRecord, MaintenancePlan, parse_date
+from app.models import (
+    FaultReport,
+    InspectionRecord,
+    INSPECTION_RESULT_NORMAL,
+    INSPECTION_RESULT_SEVERE,
+    INSPECTION_RESULT_SLIGHT,
+    INSPECTION_RESULTS,
+    INSPECTION_HANDLING_PLANS,
+    MaintenancePlan,
+    parse_date,
+    SEVERE_INSPECTION_RESULTS,
+)
 from app.repositories.base import commit
 
 
@@ -52,4 +65,38 @@ def create_inspection(payload):
         attachment_url=payload.get("attachmentUrl", ""),
         elevator_id=payload["elevatorId"],
     )
-    return commit(record).to_dict()
+    record = commit(record)
+
+    created_fault = None
+    if record.result in SEVERE_INSPECTION_RESULTS:
+        fault = FaultReport(
+            reporter=record.inspector,
+            phone="",
+            fault_type="巡检发现严重异常",
+            description=f"巡检发现严重异常：{record.checklist}",
+            priority="Urgent",
+            status="Pending",
+            elevator_id=record.elevator_id,
+        )
+        created_fault = commit(fault).to_dict()
+
+    result = record.to_dict()
+    if created_fault:
+        result["createdFault"] = created_fault
+    return result
+
+
+def inspection_statistics():
+    result_counts = dict(
+        db.session.query(InspectionRecord.result, func.count(InspectionRecord.id))
+        .group_by(InspectionRecord.result)
+        .all()
+    )
+    return {
+        "totalInspections": InspectionRecord.query.count(),
+        "normalCount": result_counts.get(INSPECTION_RESULT_NORMAL, 0),
+        "slightAbnormalCount": result_counts.get(INSPECTION_RESULT_SLIGHT, 0),
+        "severeAbnormalCount": result_counts.get(INSPECTION_RESULT_SEVERE, 0),
+        "resultCounts": result_counts,
+        "handlingPlans": INSPECTION_HANDLING_PLANS,
+    }

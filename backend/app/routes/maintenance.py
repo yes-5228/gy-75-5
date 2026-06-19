@@ -3,6 +3,7 @@ from flask import Blueprint, request
 from app.services.maintenance_service import (
     create_inspection,
     create_plan,
+    inspection_statistics,
     list_inspections,
     list_plans,
     update_plan,
@@ -34,3 +35,8 @@ def inspections():
 @bp.post("/inspections")
 def add_inspection():
     return create_inspection(request.get_json() or {}), 201
+
+
+@bp.get("/inspection-statistics")
+def get_inspection_statistics():
+    return inspection_statistics()

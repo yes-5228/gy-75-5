@@ -1,9 +1,10 @@
 ﻿<script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import { Activity, ClipboardCheck, FileClock, LayoutDashboard, Wrench } from 'lucide-vue-next'
+import { Activity, Building2, ClipboardCheck, FileClock, LayoutDashboard, Wrench } from 'lucide-vue-next'
 import { catalogApi, maintenanceApi, repairApi } from './api/modules'
 import AppShell from './components/AppShell.vue'
 import DashboardView from './views/DashboardView.vue'
+import ElevatorCatalogView from './views/ElevatorCatalogView.vue'
 import FaultReportView from './views/FaultReportView.vue'
 import InspectionView from './views/InspectionView.vue'
 import MaintenancePlanView from './views/MaintenancePlanView.vue'
@@ -28,10 +29,19 @@ const state = reactive({
     statusCounts: {},
     priorityCounts: {},
   },
+  inspectionStatistics: {
+    totalInspections: 0,
+    normalCount: 0,
+    slightAbnormalCount: 0,
+    severeAbnormalCount: 0,
+    resultCounts: {},
+    handlingPlans: {},
+  },
 })
 
 const tabs = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'catalog', label: 'Elevator Catalog', icon: Building2 },
   { id: 'plans', label: 'Maintenance Plans', icon: FileClock },
   { id: 'inspections', label: 'Inspections', icon: ClipboardCheck },
   { id: 'faults', label: 'Fault Reports', icon: Activity },
@@ -44,7 +54,7 @@ async function loadAll() {
   loading.value = true
   error.value = ''
   try {
-    const [communities, elevators, plans, inspections, faults, tracking, statistics] = await Promise.all([
+    const [communities, elevators, plans, inspections, faults, tracking, statistics, inspectionStatistics] = await Promise.all([
       catalogApi.communities(),
       catalogApi.elevators(),
       maintenanceApi.plans(),
@@ -52,6 +62,7 @@ async function loadAll() {
       repairApi.faults(),
       repairApi.tracking(),
       repairApi.statistics(),
+      maintenanceApi.inspectionStatistics(),
     ])
     state.communities = communities.items
     state.elevators = elevators.items
@@ -60,6 +71,7 @@ async function loadAll() {
     state.faults = faults.items
     state.tracking = tracking.items
     state.statistics = statistics
+    state.inspectionStatistics = inspectionStatistics
   } catch (err) {
     error.value = err.message
   } finally {
@@ -108,8 +120,13 @@ onMounted(loadAll)
     <DashboardView
       v-if="activeView === 'dashboard'"
       :statistics="state.statistics"
+      :inspection-statistics="state.inspectionStatistics"
       :plans="state.plans"
       :faults="state.faults"
+      :elevators="state.elevators"
+    />
+    <ElevatorCatalogView
+      v-else-if="activeView === 'catalog'"
       :elevators="state.elevators"
     />
     <MaintenancePlanView
@@ -123,6 +140,7 @@ onMounted(loadAll)
       v-else-if="activeView === 'inspections'"
       :records="state.inspections"
       :elevators="state.elevators"
+      :handling-plans="state.inspectionStatistics.handlingPlans"
       @create="createInspection"
     />
     <FaultReportView

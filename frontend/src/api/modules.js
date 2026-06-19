@@ -11,6 +11,7 @@ export const maintenanceApi = {
   updatePlan: (id, payload) => patch(`/api/maintenance-plans/${id}`, payload),
   inspections: () => get('/api/inspections'),
   createInspection: (payload) => post('/api/inspections', payload),
+  inspectionStatistics: () => get('/api/inspection-statistics'),
 }
 
 export const repairApi = {

@@ -7,6 +7,7 @@ import StatusBadge from '../components/StatusBadge.vue'
 
 const props = defineProps({
   statistics: { type: Object, required: true },
+  inspectionStatistics: { type: Object, required: true },
   plans: { type: Array, required: true },
   faults: { type: Array, required: true },
   elevators: { type: Array, required: true },
@@ -14,9 +15,15 @@ const props = defineProps({
 
 const metrics = computed(() => [
   { label: 'Elevators', value: props.elevators.length, hint: 'Assets in maintenance scope' },
+  { label: 'Total Inspections', value: props.inspectionStatistics.totalInspections, hint: 'All inspection records' },
   { label: 'Open Faults', value: props.statistics.openFaults, hint: 'Pending, active, or review' },
   { label: 'Completed Repairs', value: props.statistics.completedFaults, hint: 'Closed repair tickets' },
-  { label: 'Repair Cost', value: `$${props.statistics.totalCost}`, hint: 'Tracked maintenance spend' },
+])
+
+const inspectionMetrics = computed(() => [
+  { label: 'Normal', value: props.inspectionStatistics.normalCount, hint: '正常运行', status: 'Normal' },
+  { label: 'Slight Abnormal', value: props.inspectionStatistics.slightAbnormalCount, hint: '轻微异常', status: 'Slight Abnormal' },
+  { label: 'Severe Abnormal', value: props.inspectionStatistics.severeAbnormalCount, hint: '严重异常', status: 'Severe Abnormal' },
 ])
 
 const upcomingPlans = computed(() => props.plans.slice(0, 5))
@@ -26,6 +33,18 @@ const urgentFaults = computed(() => props.faults.filter((fault) => fault.priorit
 <template>
   <div class="view-stack">
     <MetricGrid :metrics="metrics" />
+
+    <section class="panel">
+      <SectionHeader title="Inspection Result Summary" description="Result grading and handling plan overview" />
+      <div class="inspection-summary-grid">
+        <div v-for="item in inspectionMetrics" :key="item.label" class="inspection-summary-card">
+          <StatusBadge :value="item.status" />
+          <strong class="inspection-count">{{ item.value }}</strong>
+          <p class="inspection-hint">{{ item.hint }}</p>
+          <p class="inspection-plan">{{ inspectionStatistics.handlingPlans[item.status] || '' }}</p>
+        </div>
+      </div>
+    </section>
 
     <div class="split-grid">
       <section class="panel">

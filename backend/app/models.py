@@ -2,6 +2,20 @@ from datetime import date, datetime
 
 from app.extensions import db
 
+INSPECTION_RESULT_NORMAL = "Normal"
+INSPECTION_RESULT_SLIGHT = "Slight Abnormal"
+INSPECTION_RESULT_SEVERE = "Severe Abnormal"
+
+INSPECTION_RESULTS = [INSPECTION_RESULT_NORMAL, INSPECTION_RESULT_SLIGHT, INSPECTION_RESULT_SEVERE]
+
+INSPECTION_HANDLING_PLANS = {
+    INSPECTION_RESULT_NORMAL: "正常运行，按计划定期巡检",
+    INSPECTION_RESULT_SLIGHT: "记录问题，安排下次维保处理",
+    INSPECTION_RESULT_SEVERE: "立即创建故障单，安排紧急维修",
+}
+
+SEVERE_INSPECTION_RESULTS = {INSPECTION_RESULT_SEVERE}
+
 
 class Community(db.Model):
     __tablename__ = "communities"
@@ -98,6 +112,7 @@ class InspectionRecord(db.Model):
             "inspectedAt": self.inspected_at.isoformat(timespec="minutes"),
             "inspector": self.inspector,
             "result": self.result,
+            "handlingPlan": INSPECTION_HANDLING_PLANS.get(self.result, ""),
             "checklist": self.checklist,
             "attachmentUrl": self.attachment_url,
             "elevatorId": self.elevator_id,
