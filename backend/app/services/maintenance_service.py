@@ -89,6 +89,16 @@ def validate_inspection_payload(payload):
         raise FieldValidationError(errors)
 
 
+def generate_fault_type(problem_description):
+    text = problem_description.strip()
+    if not text:
+        return "严重异常"
+    first_sentence = text.split("。")[0].split(".")[0].strip()
+    if len(first_sentence) > 20:
+        first_sentence = first_sentence[:20]
+    return first_sentence
+
+
 def create_inspection(payload):
     validate_inspection_payload(payload)
 
@@ -96,6 +106,7 @@ def create_inspection(payload):
         inspector=payload["inspector"].strip(),
         result=payload["result"],
         checklist=payload["checklist"].strip(),
+        problem_description=payload.get("problemDescription", "").strip() if payload.get("result") in SEVERE_INSPECTION_RESULTS else "",
         attachment_url=payload.get("attachmentUrl", ""),
         elevator_id=payload["elevatorId"],
     )
@@ -103,11 +114,11 @@ def create_inspection(payload):
 
     created_fault = None
     if record.result in SEVERE_INSPECTION_RESULTS:
-        problem_desc = payload.get("problemDescription", "").strip()
+        problem_desc = record.problem_description
         fault = FaultReport(
             reporter=record.inspector,
             phone="",
-            fault_type="巡检发现严重异常",
+            fault_type=generate_fault_type(problem_desc),
             description=problem_desc,
             priority="Urgent",
             status="Pending",

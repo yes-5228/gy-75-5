@@ -620,6 +620,16 @@ th {
   font-weight: 700;
 }
 
+.hidden-field {
+  display: none !important;
+}
+
+.problem-desc-text {
+  font-size: 13px;
+  color: #b13d32;
+  line-height: 1.4;
+}
+
 .spin {
   animation: spin 1s linear infinite;
 }

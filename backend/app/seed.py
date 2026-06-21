@@ -71,7 +71,8 @@ def seed_data():
             InspectionRecord(
                 inspector="Inspector Wang",
                 result=INSPECTION_RESULT_SEVERE,
-                checklist="Traction machine abnormal noise, brake wear exceeds limit. Immediate repair required.",
+                checklist="Traction machine, brake system, door operator, cabin lighting",
+                problem_description="Traction machine abnormal noise detected, brake pad wear exceeds safety limit by 3mm",
                 attachment_url="https://example.com/inspection/bj-b2-02.jpg",
                 elevator=elevators[1],
                 inspected_at=datetime.utcnow() - timedelta(days=3),

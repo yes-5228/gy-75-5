@@ -160,8 +160,8 @@ defineExpose({ resetForm, focusFirstError })
           <textarea v-model="form.checklist" rows="3" placeholder="List all checked items: door, cabin, machine room, traction system, safety devices..." :disabled="submitting" @input="clearFieldError('checklist')"></textarea>
           <span v-if="getDisplayError('checklist')" class="field-error">{{ getDisplayError('checklist') }}</span>
         </label>
-        <label v-if="isSevereAbnormal" ref="problemDescriptionRef" class="wide" :class="{ 'input-error': getDisplayError('problemDescription') }">
-          <span>Problem Description <em class="required-mark">*</em></span>
+        <label ref="problemDescriptionRef" class="wide" :class="{ 'input-error': getDisplayError('problemDescription'), 'hidden-field': !isSevereAbnormal }">
+          <span>Problem Description <em v-if="isSevereAbnormal" class="required-mark">*</em></span>
           <textarea v-model="form.problemDescription" rows="3" placeholder="Describe the specific severe issue found during this inspection, separate from the checklist above" :disabled="submitting" @input="clearFieldError('problemDescription')"></textarea>
           <span v-if="getDisplayError('problemDescription')" class="field-error">{{ getDisplayError('problemDescription') }}</span>
         </label>
@@ -185,6 +185,7 @@ defineExpose({ resetForm, focusFirstError })
           { key: 'result', label: 'Result' },
           { key: 'handlingPlan', label: 'Handling Plan' },
           { key: 'checklist', label: 'Checklist' },
+          { key: 'problemDescription', label: 'Problem Description' },
           { key: 'attachmentUrl', label: 'Attachment' },
         ]"
         :rows="records"
@@ -194,6 +195,10 @@ defineExpose({ resetForm, focusFirstError })
         </template>
         <template #handlingPlan="{ row }">
           <span class="handling-plan-text">{{ row.handlingPlan }}</span>
+        </template>
+        <template #problemDescription="{ row }">
+          <span v-if="row.problemDescription" class="problem-desc-text">{{ row.problemDescription }}</span>
+          <span v-else class="empty-text">-</span>
         </template>
         <template #attachmentUrl="{ row }">
           <a v-if="row.attachmentUrl" :href="row.attachmentUrl" target="_blank" rel="noreferrer">Open</a>

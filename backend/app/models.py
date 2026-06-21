@@ -101,6 +101,7 @@ class InspectionRecord(db.Model):
     inspector = db.Column(db.String(80), nullable=False)
     result = db.Column(db.String(40), nullable=False)
     checklist = db.Column(db.Text, nullable=False)
+    problem_description = db.Column(db.Text, default="", nullable=False)
     attachment_url = db.Column(db.String(240), default="", nullable=False)
     elevator_id = db.Column(db.Integer, db.ForeignKey("elevators.id"), nullable=False)
 
@@ -114,6 +115,7 @@ class InspectionRecord(db.Model):
             "result": self.result,
             "handlingPlan": INSPECTION_HANDLING_PLANS.get(self.result, ""),
             "checklist": self.checklist,
+            "problemDescription": self.problem_description,
             "attachmentUrl": self.attachment_url,
             "elevatorId": self.elevator_id,
             "elevatorCode": self.elevator.code if self.elevator else "",
