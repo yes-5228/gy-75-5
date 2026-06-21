@@ -1,7 +1,8 @@
 from pathlib import Path
 
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
+from werkzeug.exceptions import HTTPException
 
 from app.config import Config
 from app.extensions import db
@@ -21,6 +22,10 @@ def create_app(config_class=Config):
     with app.app_context():
         db.create_all()
         seed_data()
+
+    @app.errorhandler(HTTPException)
+    def handle_http_exception(error):
+        return {"error": error.description}, error.code
 
     @app.get("/api/health")
     def health_check():

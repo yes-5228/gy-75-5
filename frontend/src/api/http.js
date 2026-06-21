@@ -10,8 +10,20 @@ async function request(path, options = {}) {
   })
 
   if (!response.ok) {
-    const text = await response.text()
-    throw new Error(text || `Request failed: ${response.status}`)
+    let message = ''
+    const contentType = response.headers.get('content-type') || ''
+    if (contentType.includes('application/json')) {
+      try {
+        const data = await response.json()
+        message = data.error || data.message || ''
+      } catch (_) {
+        // ignore parse error
+      }
+    }
+    if (!message) {
+      message = await response.text()
+    }
+    throw new Error(message || `Request failed: ${response.status}`)
   }
 
   return response.json()

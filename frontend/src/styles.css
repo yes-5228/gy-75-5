@@ -577,6 +577,49 @@ th {
   font-size: 14px;
 }
 
+.fault-description-card {
+  background: #fff9f8;
+  border: 1px solid #f1cdc6;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 0 0 14px;
+}
+
+.fault-description-label {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #9b3228;
+  font-weight: 600;
+}
+
+.fault-description-text {
+  margin: 0;
+  font-size: 14px;
+  color: #3a2421;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.field-error {
+  color: #b13d32;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.input-error input,
+.input-error select,
+.input-error textarea {
+  border-color: #e07a6e;
+  background: #fff6f5;
+}
+
+.required-mark {
+  color: #d24132;
+  font-style: normal;
+  margin-left: 2px;
+  font-weight: 700;
+}
+
 .spin {
   animation: spin 1s linear infinite;
 }

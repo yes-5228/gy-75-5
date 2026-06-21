@@ -1,7 +1,9 @@
 from sqlalchemy import func
+from werkzeug.exceptions import BadRequest
 
 from app.extensions import db
 from app.models import (
+    Elevator,
     FaultReport,
     InspectionRecord,
     INSPECTION_RESULT_NORMAL,
@@ -57,11 +59,35 @@ def list_inspections():
     return [item.to_dict() for item in records]
 
 
+def validate_inspection_payload(payload):
+    errors = []
+
+    if not payload.get("inspector") or not str(payload["inspector"]).strip():
+        errors.append("请填写巡检员姓名")
+    if not payload.get("checklist") or not str(payload["checklist"]).strip():
+        errors.append("请填写检查项内容")
+    if not payload.get("elevatorId"):
+        errors.append("请选择电梯")
+    else:
+        elevator = Elevator.query.get(payload["elevatorId"])
+        if not elevator:
+            errors.append("选择的电梯不存在")
+    if not payload.get("result"):
+        errors.append("请选择巡检结果")
+    elif payload["result"] not in INSPECTION_RESULTS:
+        errors.append("无效的巡检结果")
+
+    if errors:
+        raise BadRequest("；".join(errors))
+
+
 def create_inspection(payload):
+    validate_inspection_payload(payload)
+
     record = InspectionRecord(
-        inspector=payload["inspector"],
+        inspector=payload["inspector"].strip(),
         result=payload["result"],
-        checklist=payload["checklist"],
+        checklist=payload["checklist"].strip(),
         attachment_url=payload.get("attachmentUrl", ""),
         elevator_id=payload["elevatorId"],
     )
