@@ -236,6 +236,14 @@ textarea {
   padding: 10px 11px;
 }
 
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: #f4f6f7;
+  color: #829098;
+  cursor: not-allowed;
+}
+
 textarea {
   resize: vertical;
 }
@@ -259,6 +267,29 @@ textarea {
 
 .primary-action {
   background: #148466;
+}
+
+.primary-action:disabled {
+  background: #83b5a6;
+  cursor: not-allowed;
+}
+
+.secondary-action {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #cfd9dd;
+  border-radius: 6px;
+  background: #fff;
+  color: #48545b;
+  padding: 0 16px;
+  cursor: pointer;
+}
+
+.secondary-action:hover {
+  background: #f7f9fa;
 }
 
 .danger-action {
@@ -461,10 +492,41 @@ th {
 .inspection-summary-card {
   background: #f8fafb;
   border: 1px solid #e6ecef;
+  border-left: 4px solid #cfd9dd;
   border-radius: 8px;
   padding: 16px;
   display: grid;
   gap: 8px;
+}
+
+.inspection-summary-card[data-level="normal"] {
+  background: #f0faf4;
+  border-color: #b5dfc6;
+  border-left-color: #18a67a;
+}
+
+.inspection-summary-card[data-level="normal"] .inspection-count {
+  color: #0f7758;
+}
+
+.inspection-summary-card[data-level="slight"] {
+  background: #fff9ed;
+  border-color: #f3dfa4;
+  border-left-color: #e6a700;
+}
+
+.inspection-summary-card[data-level="slight"] .inspection-count {
+  color: #9b6500;
+}
+
+.inspection-summary-card[data-level="severe"] {
+  background: #fdf1f0;
+  border-color: #f1bdb5;
+  border-left-color: #d24132;
+}
+
+.inspection-summary-card[data-level="severe"] .inspection-count {
+  color: #b13d32;
 }
 
 .inspection-count {
@@ -485,6 +547,43 @@ th {
   color: #5b6870;
   padding-top: 8px;
   border-top: 1px dashed #dce3e6;
+}
+
+.fault-info-card {
+  background: #fff9f8;
+  border: 1px solid #f1cdc6;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin: 14px 0;
+  display: grid;
+  gap: 10px;
+}
+
+.fault-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.fault-info-label {
+  color: #69757c;
+  font-size: 13px;
+}
+
+.fault-info-value {
+  color: #20242a;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 a {

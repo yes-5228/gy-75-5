@@ -1,6 +1,6 @@
 ﻿<script setup>
-import { computed, reactive, ref } from 'vue'
-import { AlertTriangle, Upload } from 'lucide-vue-next'
+import { computed, reactive } from 'vue'
+import { AlertTriangle, ArrowRight, Upload } from 'lucide-vue-next'
 import DataTable from '../components/DataTable.vue'
 import SectionHeader from '../components/SectionHeader.vue'
 import StatusBadge from '../components/StatusBadge.vue'
@@ -9,9 +9,12 @@ const props = defineProps({
   records: { type: Array, required: true },
   elevators: { type: Array, required: true },
   handlingPlans: { type: Object, default: () => ({}) },
+  submitting: { type: Boolean, default: false },
+  submitError: { type: String, default: '' },
+  severeFaultInfo: { type: Object, default: null },
 })
 
-const emit = defineEmits(['create'])
+const emit = defineEmits(['create', 'close-severe-dialog', 'go-to-faults'])
 
 const form = reactive({
   inspector: '',
@@ -21,37 +24,45 @@ const form = reactive({
   elevatorId: '',
 })
 
-const showSevereWarning = ref(false)
-const createdFault = ref(null)
-
 const currentHandlingPlan = computed(() => props.handlingPlans[form.result] || '')
 
 function submit() {
+  if (props.submitting) return
   emit('create', { ...form, elevatorId: Number(form.elevatorId) })
-  if (form.result === 'Severe Abnormal') {
-    showSevereWarning.value = true
-  }
+}
+
+function onSubmitSuccess() {
   Object.assign(form, { inspector: '', result: 'Normal', checklist: '', attachmentUrl: '', elevatorId: '' })
 }
 
 function closeWarning() {
-  showSevereWarning.value = false
-  createdFault.value = null
+  emit('close-severe-dialog')
 }
+
+function handleGoToFaults() {
+  emit('go-to-faults')
+}
+
+function resetForm() {
+  Object.assign(form, { inspector: '', result: 'Normal', checklist: '', attachmentUrl: '', elevatorId: '' })
+}
+
+defineExpose({ resetForm })
 </script>
 
 <template>
   <div class="view-stack">
     <section class="panel">
       <SectionHeader title="Upload Inspection Record" description="Register result, checklist, and attachment URL" />
+      <div v-if="submitError" class="notice error">{{ submitError }}</div>
       <form class="form-grid" @submit.prevent="submit">
         <label>
           <span>Inspector</span>
-          <input v-model="form.inspector" required placeholder="Inspector name" />
+          <input v-model="form.inspector" required placeholder="Inspector name" :disabled="submitting" />
         </label>
         <label>
           <span>Result</span>
-          <select v-model="form.result">
+          <select v-model="form.result" :disabled="submitting">
             <option value="Normal">Normal</option>
             <option value="Slight Abnormal">Slight Abnormal</option>
             <option value="Severe Abnormal">Severe Abnormal</option>
@@ -59,7 +70,7 @@ function closeWarning() {
         </label>
         <label>
           <span>Elevator</span>
-          <select v-model="form.elevatorId" required>
+          <select v-model="form.elevatorId" required :disabled="submitting">
             <option value="" disabled>Select elevator</option>
             <option v-for="elevator in elevators" :key="elevator.id" :value="elevator.id">
               {{ elevator.code }} - {{ elevator.building }} {{ elevator.unit }}
@@ -68,18 +79,18 @@ function closeWarning() {
         </label>
         <label>
           <span>Attachment URL</span>
-          <input v-model="form.attachmentUrl" placeholder="Image or document URL" />
+          <input v-model="form.attachmentUrl" placeholder="Image or document URL" :disabled="submitting" />
         </label>
         <label class="wide">
           <span>Checklist</span>
-          <textarea v-model="form.checklist" required rows="3" placeholder="Door, cabin, machine room, traction system, and safety checks"></textarea>
+          <textarea v-model="form.checklist" required rows="3" placeholder="Door, cabin, machine room, traction system, and safety checks" :disabled="submitting"></textarea>
         </label>
         <div v-if="currentHandlingPlan" class="wide handling-plan-hint">
           <strong>Handling Plan:</strong> {{ currentHandlingPlan }}
         </div>
-        <button class="primary-action" type="submit">
-          <Upload :size="17" />
-          <span>Submit Record</span>
+        <button class="primary-action" type="submit" :disabled="submitting">
+          <Upload :size="17" :class="{ 'spin': submitting }" />
+          <span>{{ submitting ? 'Submitting...' : 'Submit Record' }}</span>
         </button>
       </form>
     </section>
@@ -111,7 +122,7 @@ function closeWarning() {
       </DataTable>
     </section>
 
-    <div v-if="showSevereWarning" class="modal-overlay" @click="closeWarning">
+    <div v-if="severeFaultInfo" class="modal-overlay" @click="closeWarning">
       <div class="modal-content severe-warning" @click.stop>
         <div class="modal-header">
           <AlertTriangle :size="24" class="warning-icon" />
@@ -119,10 +130,32 @@ function closeWarning() {
         </div>
         <div class="modal-body">
           <p>A severe abnormality has been recorded. A fault ticket has been automatically created for urgent repair.</p>
-          <p class="warning-note">Please follow up on the fault report page to track the repair progress.</p>
+          <div class="fault-info-card">
+            <div class="fault-info-row">
+              <span class="fault-info-label">Fault Ticket No.</span>
+              <span class="fault-info-value">#{{ severeFaultInfo.id }}</span>
+            </div>
+            <div class="fault-info-row">
+              <span class="fault-info-label">Elevator</span>
+              <span class="fault-info-value">{{ severeFaultInfo.elevatorCode }}</span>
+            </div>
+            <div class="fault-info-row">
+              <span class="fault-info-label">Priority</span>
+              <StatusBadge :value="severeFaultInfo.priority" />
+            </div>
+            <div class="fault-info-row">
+              <span class="fault-info-label">Status</span>
+              <StatusBadge :value="severeFaultInfo.status" />
+            </div>
+          </div>
+          <p class="warning-note">Click the button below to view and track this fault report.</p>
         </div>
         <div class="modal-footer">
-          <button class="primary-action" @click="closeWarning">OK</button>
+          <button class="secondary-action" @click="closeWarning">Close</button>
+          <button class="primary-action" @click="handleGoToFaults">
+            <span>Go to Fault Reports</span>
+            <ArrowRight :size="16" />
+          </button>
         </div>
       </div>
     </div>

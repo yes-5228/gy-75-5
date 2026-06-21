@@ -21,9 +21,9 @@ const metrics = computed(() => [
 ])
 
 const inspectionMetrics = computed(() => [
-  { label: 'Normal', value: props.inspectionStatistics.normalCount, hint: '正常运行', status: 'Normal' },
-  { label: 'Slight Abnormal', value: props.inspectionStatistics.slightAbnormalCount, hint: '轻微异常', status: 'Slight Abnormal' },
-  { label: 'Severe Abnormal', value: props.inspectionStatistics.severeAbnormalCount, hint: '严重异常', status: 'Severe Abnormal' },
+  { label: 'Normal', value: props.inspectionStatistics.normalCount, hint: '正常运行', status: 'Normal', level: 'normal' },
+  { label: 'Slight Abnormal', value: props.inspectionStatistics.slightAbnormalCount, hint: '轻微异常', status: 'Slight Abnormal', level: 'slight' },
+  { label: 'Severe Abnormal', value: props.inspectionStatistics.severeAbnormalCount, hint: '严重异常', status: 'Severe Abnormal', level: 'severe' },
 ])
 
 const upcomingPlans = computed(() => props.plans.slice(0, 5))
@@ -37,7 +37,7 @@ const urgentFaults = computed(() => props.faults.filter((fault) => fault.priorit
     <section class="panel">
       <SectionHeader title="Inspection Result Summary" description="Result grading and handling plan overview" />
       <div class="inspection-summary-grid">
-        <div v-for="item in inspectionMetrics" :key="item.label" class="inspection-summary-card">
+        <div v-for="item in inspectionMetrics" :key="item.label" class="inspection-summary-card" :data-level="item.level">
           <StatusBadge :value="item.status" />
           <strong class="inspection-count">{{ item.value }}</strong>
           <p class="inspection-hint">{{ item.hint }}</p>

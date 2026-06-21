@@ -13,6 +13,9 @@ import RepairTrackingView from './views/RepairTrackingView.vue'
 const activeView = ref('dashboard')
 const loading = ref(false)
 const error = ref('')
+const inspectionSubmitting = ref(false)
+const inspectionError = ref('')
+const severeFaultInfo = ref(null)
 
 const state = reactive({
   communities: [],
@@ -89,9 +92,35 @@ async function updatePlan(id, payload) {
   await loadAll()
 }
 
+const inspectionViewRef = ref(null)
+
 async function createInspection(payload) {
-  await maintenanceApi.createInspection(payload)
-  await loadAll()
+  inspectionSubmitting.value = true
+  inspectionError.value = ''
+  severeFaultInfo.value = null
+  try {
+    const result = await maintenanceApi.createInspection(payload)
+    await loadAll()
+    if (inspectionViewRef.value) {
+      inspectionViewRef.value.resetForm()
+    }
+    if (result && result.createdFault) {
+      severeFaultInfo.value = result.createdFault
+    }
+  } catch (err) {
+    inspectionError.value = err.message || 'Failed to submit inspection record. Please try again.'
+  } finally {
+    inspectionSubmitting.value = false
+  }
+}
+
+function closeSevereFaultDialog() {
+  severeFaultInfo.value = null
+}
+
+function goToFaultReports() {
+  severeFaultInfo.value = null
+  activeView.value = 'faults'
 }
 
 async function createFault(payload) {
@@ -137,11 +166,17 @@ onMounted(loadAll)
       @update="updatePlan"
     />
     <InspectionView
+      ref="inspectionViewRef"
       v-else-if="activeView === 'inspections'"
       :records="state.inspections"
       :elevators="state.elevators"
       :handling-plans="state.inspectionStatistics.handlingPlans"
+      :submitting="inspectionSubmitting"
+      :submit-error="inspectionError"
+      :severe-fault-info="severeFaultInfo"
       @create="createInspection"
+      @close-severe-dialog="closeSevereFaultDialog"
+      @go-to-faults="goToFaultReports"
     />
     <FaultReportView
       v-else-if="activeView === 'faults'"
