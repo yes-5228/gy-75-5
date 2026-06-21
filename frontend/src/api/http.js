@@ -11,11 +11,15 @@ async function request(path, options = {}) {
 
   if (!response.ok) {
     let message = ''
+    let fieldErrors = null
     const contentType = response.headers.get('content-type') || ''
     if (contentType.includes('application/json')) {
       try {
         const data = await response.json()
         message = data.error || data.message || ''
+        if (data.fieldErrors && typeof data.fieldErrors === 'object') {
+          fieldErrors = data.fieldErrors
+        }
       } catch (_) {
         // ignore parse error
       }
@@ -23,7 +27,11 @@ async function request(path, options = {}) {
     if (!message) {
       message = await response.text()
     }
-    throw new Error(message || `Request failed: ${response.status}`)
+    const error = new Error(message || `Request failed: ${response.status}`)
+    if (fieldErrors) {
+      error.fieldErrors = fieldErrors
+    }
+    throw error
   }
 
   return response.json()

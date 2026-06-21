@@ -1,6 +1,7 @@
-from flask import Blueprint, request
+from flask import Blueprint, jsonify, request
 
 from app.services.maintenance_service import (
+    FieldValidationError,
     create_inspection,
     create_plan,
     inspection_statistics,
@@ -34,7 +35,10 @@ def inspections():
 
 @bp.post("/inspections")
 def add_inspection():
-    return create_inspection(request.get_json() or {}), 201
+    try:
+        return create_inspection(request.get_json() or {}), 201
+    except FieldValidationError as e:
+        return jsonify({"fieldErrors": e.field_errors}), 400
 
 
 @bp.get("/inspection-statistics")

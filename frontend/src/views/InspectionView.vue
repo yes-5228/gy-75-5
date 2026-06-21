@@ -1,5 +1,5 @@
 ﻿<script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, nextTick, reactive, ref } from 'vue'
 import { AlertTriangle, ArrowRight, Upload } from 'lucide-vue-next'
 import DataTable from '../components/DataTable.vue'
 import SectionHeader from '../components/SectionHeader.vue'
@@ -10,7 +10,7 @@ const props = defineProps({
   elevators: { type: Array, required: true },
   handlingPlans: { type: Object, default: () => ({}) },
   submitting: { type: Boolean, default: false },
-  submitError: { type: String, default: '' },
+  fieldErrors: { type: Object, default: () => ({}) },
   severeFaultInfo: { type: Object, default: null },
 })
 
@@ -20,49 +20,88 @@ const form = reactive({
   inspector: '',
   result: 'Normal',
   checklist: '',
+  problemDescription: '',
   attachmentUrl: '',
   elevatorId: '',
 })
 
-const formErrors = reactive({
+const localErrors = reactive({
   inspector: '',
   checklist: '',
   elevatorId: '',
+  problemDescription: '',
 })
 
+const inspectorRef = ref(null)
+const elevatorRef = ref(null)
+const checklistRef = ref(null)
+const problemDescriptionRef = ref(null)
+
+const isSevereAbnormal = computed(() => form.result === 'Severe Abnormal')
 const currentHandlingPlan = computed(() => props.handlingPlans[form.result] || '')
+
+function getDisplayError(field) {
+  return localErrors[field] || props.fieldErrors[field] || ''
+}
+
+function clearFieldError(field) {
+  if (localErrors[field]) {
+    localErrors[field] = ''
+  }
+  emit('clear-field-error', field)
+}
 
 function validateForm() {
   let valid = true
-  formErrors.inspector = ''
-  formErrors.checklist = ''
-  formErrors.elevatorId = ''
+  localErrors.inspector = ''
+  localErrors.checklist = ''
+  localErrors.elevatorId = ''
+  localErrors.problemDescription = ''
 
   if (!form.inspector.trim()) {
-    formErrors.inspector = '请填写巡检员姓名'
-    valid = false
-  }
-  if (!form.checklist.trim()) {
-    formErrors.checklist = '请填写检查项内容'
+    localErrors.inspector = '请填写巡检员姓名'
     valid = false
   }
   if (!form.elevatorId) {
-    formErrors.elevatorId = '请选择电梯'
+    localErrors.elevatorId = '请选择电梯'
+    valid = false
+  }
+  if (!form.checklist.trim()) {
+    localErrors.checklist = '请填写检查项内容'
+    valid = false
+  }
+  if (isSevereAbnormal.value && !form.problemDescription.trim()) {
+    localErrors.problemDescription = '严重异常必须填写问题描述'
     valid = false
   }
   return valid
 }
 
-function clearFieldError(field) {
-  if (formErrors[field]) {
-    formErrors[field] = ''
+async function focusFirstError() {
+  await nextTick()
+  const order = [inspectorRef, elevatorRef, checklistRef, problemDescriptionRef]
+  for (const inputRef of order) {
+    if (inputRef.value) {
+      const el = inputRef.value.$el || inputRef.value
+      const input = el.querySelector?.('input, select, textarea') || el
+      input.focus?.()
+      input.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+      break
+    }
   }
 }
 
 function submit() {
   if (props.submitting) return
-  if (!validateForm()) return
-  emit('create', { ...form, elevatorId: Number(form.elevatorId) })
+  if (!validateForm()) {
+    focusFirstError()
+    return
+  }
+  const payload = { ...form, elevatorId: Number(form.elevatorId) }
+  if (!isSevereAbnormal.value) {
+    delete payload.problemDescription
+  }
+  emit('create', payload)
 }
 
 function closeWarning() {
@@ -74,25 +113,25 @@ function handleGoToFaults() {
 }
 
 function resetForm() {
-  Object.assign(form, { inspector: '', result: 'Normal', checklist: '', attachmentUrl: '', elevatorId: '' })
-  formErrors.inspector = ''
-  formErrors.checklist = ''
-  formErrors.elevatorId = ''
+  Object.assign(form, { inspector: '', result: 'Normal', checklist: '', problemDescription: '', attachmentUrl: '', elevatorId: '' })
+  localErrors.inspector = ''
+  localErrors.checklist = ''
+  localErrors.elevatorId = ''
+  localErrors.problemDescription = ''
 }
 
-defineExpose({ resetForm })
+defineExpose({ resetForm, focusFirstError })
 </script>
 
 <template>
   <div class="view-stack">
     <section class="panel">
       <SectionHeader title="Upload Inspection Record" description="Register result, checklist, and attachment URL" />
-      <div v-if="submitError" class="notice error">{{ submitError }}</div>
       <form class="form-grid" @submit.prevent="submit">
-        <label :class="{ 'input-error': formErrors.inspector }">
+        <label ref="inspectorRef" :class="{ 'input-error': getDisplayError('inspector') }">
           <span>Inspector <em class="required-mark">*</em></span>
           <input v-model="form.inspector" placeholder="Inspector name" :disabled="submitting" @input="clearFieldError('inspector')" />
-          <span v-if="formErrors.inspector" class="field-error">{{ formErrors.inspector }}</span>
+          <span v-if="getDisplayError('inspector')" class="field-error">{{ getDisplayError('inspector') }}</span>
         </label>
         <label>
           <span>Result</span>
@@ -102,7 +141,7 @@ defineExpose({ resetForm })
             <option value="Severe Abnormal">Severe Abnormal</option>
           </select>
         </label>
-        <label :class="{ 'input-error': formErrors.elevatorId }">
+        <label ref="elevatorRef" :class="{ 'input-error': getDisplayError('elevatorId') }">
           <span>Elevator <em class="required-mark">*</em></span>
           <select v-model="form.elevatorId" :disabled="submitting" @change="clearFieldError('elevatorId')">
             <option value="" disabled>Select elevator</option>
@@ -110,16 +149,21 @@ defineExpose({ resetForm })
               {{ elevator.code }} - {{ elevator.building }} {{ elevator.unit }}
             </option>
           </select>
-          <span v-if="formErrors.elevatorId" class="field-error">{{ formErrors.elevatorId }}</span>
+          <span v-if="getDisplayError('elevatorId')" class="field-error">{{ getDisplayError('elevatorId') }}</span>
         </label>
         <label>
           <span>Attachment URL</span>
           <input v-model="form.attachmentUrl" placeholder="Image or document URL" :disabled="submitting" />
         </label>
-        <label class="wide" :class="{ 'input-error': formErrors.checklist }">
+        <label ref="checklistRef" class="wide" :class="{ 'input-error': getDisplayError('checklist') }">
           <span>Checklist <em class="required-mark">*</em></span>
-          <textarea v-model="form.checklist" rows="3" placeholder="Door, cabin, machine room, traction system, and safety checks" :disabled="submitting" @input="clearFieldError('checklist')"></textarea>
-          <span v-if="formErrors.checklist" class="field-error">{{ formErrors.checklist }}</span>
+          <textarea v-model="form.checklist" rows="3" placeholder="List all checked items: door, cabin, machine room, traction system, safety devices..." :disabled="submitting" @input="clearFieldError('checklist')"></textarea>
+          <span v-if="getDisplayError('checklist')" class="field-error">{{ getDisplayError('checklist') }}</span>
+        </label>
+        <label v-if="isSevereAbnormal" ref="problemDescriptionRef" class="wide" :class="{ 'input-error': getDisplayError('problemDescription') }">
+          <span>Problem Description <em class="required-mark">*</em></span>
+          <textarea v-model="form.problemDescription" rows="3" placeholder="Describe the specific severe issue found during this inspection, separate from the checklist above" :disabled="submitting" @input="clearFieldError('problemDescription')"></textarea>
+          <span v-if="getDisplayError('problemDescription')" class="field-error">{{ getDisplayError('problemDescription') }}</span>
         </label>
         <div v-if="currentHandlingPlan" class="wide handling-plan-hint">
           <strong>Handling Plan:</strong> {{ currentHandlingPlan }}

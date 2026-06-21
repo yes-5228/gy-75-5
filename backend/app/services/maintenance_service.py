@@ -1,5 +1,4 @@
 from sqlalchemy import func
-from werkzeug.exceptions import BadRequest
 
 from app.extensions import db
 from app.models import (
@@ -16,6 +15,12 @@ from app.models import (
     SEVERE_INSPECTION_RESULTS,
 )
 from app.repositories.base import commit
+
+
+class FieldValidationError(Exception):
+    def __init__(self, field_errors):
+        self.field_errors = field_errors
+        super().__init__("Validation failed")
 
 
 def list_plans():
@@ -60,25 +65,28 @@ def list_inspections():
 
 
 def validate_inspection_payload(payload):
-    errors = []
+    errors = {}
 
     if not payload.get("inspector") or not str(payload["inspector"]).strip():
-        errors.append("请填写巡检员姓名")
+        errors["inspector"] = "请填写巡检员姓名"
     if not payload.get("checklist") or not str(payload["checklist"]).strip():
-        errors.append("请填写检查项内容")
+        errors["checklist"] = "请填写检查项内容"
     if not payload.get("elevatorId"):
-        errors.append("请选择电梯")
+        errors["elevatorId"] = "请选择电梯"
     else:
         elevator = Elevator.query.get(payload["elevatorId"])
         if not elevator:
-            errors.append("选择的电梯不存在")
+            errors["elevatorId"] = "选择的电梯不存在"
     if not payload.get("result"):
-        errors.append("请选择巡检结果")
+        errors["result"] = "请选择巡检结果"
     elif payload["result"] not in INSPECTION_RESULTS:
-        errors.append("无效的巡检结果")
+        errors["result"] = "无效的巡检结果"
+    if payload.get("result") in SEVERE_INSPECTION_RESULTS:
+        if not payload.get("problemDescription") or not str(payload["problemDescription"]).strip():
+            errors["problemDescription"] = "严重异常必须填写问题描述"
 
     if errors:
-        raise BadRequest("；".join(errors))
+        raise FieldValidationError(errors)
 
 
 def create_inspection(payload):
@@ -95,11 +103,12 @@ def create_inspection(payload):
 
     created_fault = None
     if record.result in SEVERE_INSPECTION_RESULTS:
+        problem_desc = payload.get("problemDescription", "").strip()
         fault = FaultReport(
             reporter=record.inspector,
             phone="",
             fault_type="巡检发现严重异常",
-            description=f"巡检发现严重异常：{record.checklist}",
+            description=problem_desc,
             priority="Urgent",
             status="Pending",
             elevator_id=record.elevator_id,

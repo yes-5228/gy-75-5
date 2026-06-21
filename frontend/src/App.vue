@@ -1,5 +1,5 @@
 ﻿<script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { Activity, Building2, ClipboardCheck, FileClock, LayoutDashboard, Wrench } from 'lucide-vue-next'
 import { catalogApi, maintenanceApi, repairApi } from './api/modules'
 import AppShell from './components/AppShell.vue'
@@ -14,7 +14,7 @@ const activeView = ref('dashboard')
 const loading = ref(false)
 const error = ref('')
 const inspectionSubmitting = ref(false)
-const inspectionError = ref('')
+const inspectionFieldErrors = ref({})
 const severeFaultInfo = ref(null)
 
 const state = reactive({
@@ -96,7 +96,7 @@ const inspectionViewRef = ref(null)
 
 async function createInspection(payload) {
   inspectionSubmitting.value = true
-  inspectionError.value = ''
+  inspectionFieldErrors.value = {}
   severeFaultInfo.value = null
   try {
     const result = await maintenanceApi.createInspection(payload)
@@ -108,7 +108,14 @@ async function createInspection(payload) {
       severeFaultInfo.value = result.createdFault
     }
   } catch (err) {
-    inspectionError.value = err.message || 'Failed to submit inspection record. Please try again.'
+    if (err.fieldErrors && typeof err.fieldErrors === 'object') {
+      inspectionFieldErrors.value = err.fieldErrors
+      nextTick(() => {
+        if (inspectionViewRef.value) {
+          inspectionViewRef.value.focusFirstError()
+        }
+      })
+    }
   } finally {
     inspectionSubmitting.value = false
   }
@@ -172,7 +179,7 @@ onMounted(loadAll)
       :elevators="state.elevators"
       :handling-plans="state.inspectionStatistics.handlingPlans"
       :submitting="inspectionSubmitting"
-      :submit-error="inspectionError"
+      :field-errors="inspectionFieldErrors"
       :severe-fault-info="severeFaultInfo"
       @create="createInspection"
       @close-severe-dialog="closeSevereFaultDialog"
